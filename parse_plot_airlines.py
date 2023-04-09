@@ -1,6 +1,4 @@
 import pandas as pd
-import plotly.express as px
-import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -12,15 +10,13 @@ pkz325
 CPSC 4530 Spring 2023
 Assignment 4
 
-For Dataset 1 - Tree Based (Used Treemap to visualize relationship between bombs dropped between theater/aircraft)
-
-https://plotly.com/python/treemaps/
+For Dataset 2 - Network (used node-edge to show airline connections and average flight delay)
 """
 
 
 def parse_data():
     """
-    Doc Doc Doc
+    Parse step for Dataset 2
     """
 
     # Load in raw data, do basic check
@@ -41,6 +37,7 @@ def parse_data():
 
     parsed_df = [["origin_airport", "destination_airport", "num_flights", "average_delay"]]
 
+    # Group by edge's, filter out pairs with < daily flights. Calc average delay
     for origin_airport in list(raw_df["ORIGIN_AIRPORT"].unique()):
         origin_df = raw_df[raw_df["ORIGIN_AIRPORT"] == origin_airport]
         for destination_airport in list(origin_df["DESTINATION_AIRPORT"].unique()):
@@ -51,6 +48,7 @@ def parse_data():
                 average_delay = (origin_destination_df["DEPARTURE_DELAY"].mean() + origin_destination_df["ARRIVAL_DELAY"].mean()) / 2.0
                 parsed_df.append([origin_airport, destination_airport, num_flights, average_delay])
 
+    # Spot check above transformation
     parsed_df = pd.DataFrame(data=parsed_df[1:], columns=parsed_df[0])
     print(parsed_df.head())
     print(parsed_df.info())
@@ -80,6 +78,9 @@ def parse_data():
 
 def plot_data():
     """
+    Plot step for dataset 2
+
+    Some links I found helpful for this, since don't typically use networkx
     https://stackoverflow.com/questions/17632151/coloring-networkx-edges-based-on-weight
     https://networkx.org/documentation/stable/reference/classes/multidigraph.html
     https://stackoverflow.com/questions/17051589/parsing-through-edges-in-networkx-graph
@@ -88,11 +89,13 @@ def plot_data():
     # Read DF
     df = pd.read_csv("parsed_data/flights_parsed.csv")
 
+    # Convert delay to RGBA color using colorscale
     c_map = plt.get_cmap('bwr')
     c_norm = colors.Normalize(vmin=df["average_delay"].min(), vmax=df["average_delay"].max())
     scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=c_map)
     df["average_delay_color"] = df["average_delay"].apply(lambda x: scalar_map.to_rgba(x))
 
+    # Since edge were not in order, make a lookup.. (that was fun to debug)
     edge_color_dict = {}
     for i, row in df.iterrows():
         try:
@@ -100,11 +103,12 @@ def plot_data():
         except KeyError:
             edge_color_dict[row["origin_airport"]] = {}
             edge_color_dict[row["origin_airport"]][row["destination_airport"]] = row["average_delay_color"]
-        # print(row["origin_airport"], row["destination_airport"], row["average_delay"], row["average_delay_color"])
 
+    # Plot Construction
     G = nx.from_pandas_edgelist(df, 'origin_airport', 'destination_airport', create_using=nx.MultiDiGraph())
     plt.title("Delta Airlines Flight Connections and Average Delay")
 
+    # Edge colormap in correct order...
     edge_colors = []
     for e in G.edges():
         edge_colors.append(edge_color_dict[e[0]][e[1]])

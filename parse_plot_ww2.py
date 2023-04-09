@@ -15,7 +15,7 @@ https://plotly.com/python/treemaps/
 
 def parse_data():
     """
-    Doc Doc Doc
+    Parse step for DataSet 1
     """
 
     # Load in raw data, do basic check
@@ -41,13 +41,18 @@ def parse_data():
 
     # Drop EAST AFRICA -- we'll just look at the highest 4 theaters (may end up dropping CBI later)
     raw_df = raw_df[~raw_df["theater"].isin(["EAST AFRICA"])]
+    print(raw_df.head())
+    print(raw_df.info())
     print(raw_df.groupby(by=["theater"])["bomb_tonnage"].sum())
 
-    # Create DF for plotting (Only include aircraft > 1% use in each theater)
+    # Create DF for plotting (Only include aircraft > 0.05% use in each theater)
     parsed_df = [["theater", "aircraft", "bomb_tonnage", "bomb_tonnage_theater_percent",
                   "bomb_tonnage_overall_percent"]]
-    sum_tonnage = raw_df["bomb_tonnage"].sum()
-    t_a_threshold = 0.005
+
+    sum_tonnage = raw_df["bomb_tonnage"].sum()  # Percent showing that theater/aircraft pair to overall war
+    t_a_threshold = 0.005  # Threshold to include
+
+    # Group by theater/aircraft
     for theater in list(raw_df["theater"].unique()):
         theater_df = raw_df[raw_df["theater"] == theater]
         total_tonnage = theater_df["bomb_tonnage"].sum()
@@ -61,6 +66,7 @@ def parse_data():
                 print(aircraft, t_a_ratio, sum_tonnage_ratio)
                 parsed_df.append([theater, aircraft, theater_aircraft_tonnage, t_a_ratio, sum_tonnage_ratio])
 
+    # Write to Parsed
     parsed_df = pd.DataFrame(data=parsed_df[1:], columns=parsed_df[0])
     parsed_df.to_csv("parsed_data/ww2_bomb_parsed.csv", index=False)
 
@@ -68,6 +74,9 @@ def parse_data():
 
 
 def plot_data():
+    """
+    Plot step for DataSet 1
+    """
 
     # Read DF
     df = pd.read_csv("parsed_data/ww2_bomb_parsed.csv")
